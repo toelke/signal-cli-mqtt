@@ -1,6 +1,7 @@
 package org.asamk.signal.mqtt;
 
 import org.asamk.signal.manager.Manager;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -16,7 +17,7 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
 
     private static int DEFAULT_QUALITY_OF_SERVICE = 2;
 
-    private final MqttClient mqttClient;
+    private final MqttAsyncClient mqttClient;
     private final Manager manager;
 
 
@@ -24,7 +25,7 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
      * Creates a new instance that passes all incoming messages to the provided mqttClient.
      * @param mqttClient the broker to pass all the incoming messages to
      */
-    public MqttReceiveMessageHandler(Manager manager, MqttClient mqttClient)
+    public MqttReceiveMessageHandler(Manager manager, MqttAsyncClient mqttClient)
     {
         this.manager = manager;
         this.mqttClient = mqttClient;
@@ -57,7 +58,11 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
 
     @Override
     public void handleMessage(final SignalServiceEnvelope envelope, final SignalServiceContent decryptedContent, final Throwable e) {
-        System.out.println("Message Received from " + decryptedContent.getSender());
+        if(decryptedContent == null)
+        {
+            System.err.println("Decrypted content is null");
+            return;
+        }
 
         MqttJsonMessage msg = MqttJsonMessage.build(envelope, decryptedContent, e);
         String topic = DEFAULT_TOPIC + stripIllegalTopicCharacters(manager.getUsername() + "/" + msg.getSubTopic());

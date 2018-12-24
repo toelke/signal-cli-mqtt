@@ -5,6 +5,8 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.asamk.signal.manager.Manager;
 import org.asamk.signal.mqtt.MqttReceiveMessageHandler;
+import org.asamk.signal.mqtt.MqttSendMessageHandler;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -37,15 +39,18 @@ public class MqttCommand implements LocalCommand {
         String broker  = brokerInput != null ? brokerInput : DEFAULT_MQTT_BROKER;
         String clientId     = "signal-cli";
 
-        MqttClient mqttClient = null;
+        MqttAsyncClient mqttClient = null;
         try {
             // connect to mqtt
-            mqttClient = new MqttClient(broker, clientId);
+            mqttClient = new MqttAsyncClient(broker, clientId);
             MqttConnectOptions connOpts = new MqttConnectOptions();
             connOpts.setCleanSession(true);
             System.out.println("Connecting to broker: " + broker);
-            mqttClient.connect(connOpts);
-            System.out.println("Connected");
+            mqttClient.connect(connOpts).waitForCompletion();
+
+            System.out.println("Connected: "+mqttClient.isConnected());
+
+            //MqttSendMessageHandler sendHandler = new MqttSendMessageHandler(m, mqttClient);
 
             boolean ignoreAttachments = false;
             try {
@@ -66,9 +71,16 @@ public class MqttCommand implements LocalCommand {
             System.err.println("Error while handling mqtt: " + me.getMessage());
             me.printStackTrace();
             return 1;
+        }
+        catch(Exception ex)
+        {
+            System.err.println("Error: "+ex);
+            ex.printStackTrace();
+            return 1;
         } finally {
            if(mqttClient != null) {
                try {
+                   System.out.println("Closing Mqtt connection");
                    mqttClient.disconnect();
                    return 0;
                }
