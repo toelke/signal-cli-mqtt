@@ -4,9 +4,9 @@ import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.asamk.signal.manager.Manager;
-import org.asamk.signal.mqtt.ReceivedMessageMqttBridge;
 import org.asamk.signal.mqtt.MqttSendMessageHandler;
 import org.asamk.signal.mqtt.MqttTopicClient;
+import org.asamk.signal.mqtt.ReceivedMessageMqttBridge;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
 import java.io.IOException;
@@ -14,6 +14,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.asamk.signal.util.ErrorUtils.handleAssertionError;
 
+/**
+ * Command to start a daemon that connects to an Mqtt Broker and waits for incoming messages to provide them to
+ * the broker. Additionally the daemon waits for send requests and sends them through Signal.
+ */
 public class MqttCommand implements LocalCommand {
 
     private static final String DEFAULT_MQTT_BROKER = "tcp://127.0.0.1:1883";
@@ -33,7 +37,7 @@ public class MqttCommand implements LocalCommand {
         }
 
         String brokerInput = ns.getString("broker");
-        String broker  = brokerInput != null ? brokerInput : DEFAULT_MQTT_BROKER;
+        String broker = brokerInput != null ? brokerInput : DEFAULT_MQTT_BROKER;
 
         MqttTopicClient mqttTopicClient = null;
         try {
@@ -60,29 +64,25 @@ public class MqttCommand implements LocalCommand {
                 handleAssertionError(e);
                 return 1;
             }
-        } catch(MqttException me) {
+        } catch (MqttException me) {
             System.err.println("Error while handling mqtt: " + me.getMessage());
             me.printStackTrace();
             return 1;
-        }
-        catch(Exception ex)
-        {
-            System.err.println("Error: "+ex);
+        } catch (Exception ex) {
+            System.err.println("Error: " + ex);
             ex.printStackTrace();
             return 1;
         } finally {
-           if(mqttTopicClient != null) {
-               try {
-                   System.out.println("Closing mqtt connection");
-                   mqttTopicClient.disconnect();
-                   return 0;
-               }
-               catch (MqttException me)
-               {
-                   System.err.println("Error while closing mqtt connection: " + me.getMessage());
-                   return 1;
-               }
-           }
+            if (mqttTopicClient != null) {
+                try {
+                    System.out.println("Closing mqtt connection");
+                    mqttTopicClient.disconnect();
+                    return 0;
+                } catch (MqttException me) {
+                    System.err.println("Error while closing mqtt connection: " + me.getMessage());
+                    return 1;
+                }
+            }
         }
     }
 }

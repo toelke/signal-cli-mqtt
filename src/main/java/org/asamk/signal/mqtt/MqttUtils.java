@@ -15,6 +15,7 @@ public final class MqttUtils {
     public static String stripIllegalTopicCharacters(String topic)
     {
         return topic.replace("+", "")
+                .replace("*", "")
                 .replace(" ", "");
     }
 }

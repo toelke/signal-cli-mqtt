@@ -9,6 +9,9 @@ import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptio
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Handler to react on send requests from the broker on {@link #MQTT_TOPIC_SEND}.
+ */
 public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
 
     private final Manager manager;
@@ -23,8 +26,6 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
 
     @Override
     public void messageArrived(final String topic, final MqttMessage message) throws Exception {
-        System.out.println(topic);
-
         JsonNode jsonMessage = json.readTree(message.toString());
 
         JsonNode recipientNode = jsonMessage.get("recipient");

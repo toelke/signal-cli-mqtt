@@ -5,6 +5,9 @@ import org.eclipse.paho.client.mqttv3.*;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * MqttClient that can handle incoming messages from multiple topics and publish messages.
+ */
 public class MqttTopicClient implements MqttCallback {
 
     private final MqttAsyncClient mqttClient;
