@@ -4,7 +4,7 @@ import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.asamk.signal.manager.Manager;
-import org.asamk.signal.mqtt.MqttReceiveMessageHandler;
+import org.asamk.signal.mqtt.ReceivedMessageMqttBridge;
 import org.asamk.signal.mqtt.MqttSendMessageHandler;
 import org.asamk.signal.mqtt.MqttTopicClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -50,7 +50,7 @@ public class MqttCommand implements LocalCommand {
                         TimeUnit.HOURS,
                         false,
                         ignoreAttachments,
-                        new MqttReceiveMessageHandler(m, mqttTopicClient));
+                        new ReceivedMessageMqttBridge(m, mqttTopicClient));
                 return 0;
             } catch (IOException e) {
                 System.err.println("Error while receiving messages: " + e.getMessage());
