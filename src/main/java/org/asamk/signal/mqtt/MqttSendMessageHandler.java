@@ -1,5 +1,7 @@
 package org.asamk.signal.mqtt;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.asamk.signal.manager.Manager;
 import org.eclipse.paho.client.mqttv3.*;
 import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptions;
@@ -7,42 +9,36 @@ import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptio
 import java.util.ArrayList;
 import java.util.List;
 
-public class MqttSendMessageHandler implements MqttCallback {
+public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
 
     private final Manager manager;
-    private final MqttAsyncClient mqttClient;
+    private final ObjectMapper json = new ObjectMapper();
+    public static final String MQTT_TOPIC_SEND = "signal-cli/messages/send";
 
-    public MqttSendMessageHandler(Manager manager, MqttAsyncClient mqttClient)
+    public MqttSendMessageHandler(Manager manager)
     {
         this.manager = manager;
-        this.mqttClient = mqttClient;
-        try {
-            mqttClient.subscribe("signal-cli/messages/send", 1);
-            mqttClient.setCallback(this);
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void connectionLost(final Throwable cause) {
-        System.err.println("Connection to Mqtt lost");
+        addTopic(MQTT_TOPIC_SEND);
     }
 
     @Override
     public void messageArrived(final String topic, final MqttMessage message) throws Exception {
         System.out.println(topic);
+
+        JsonNode jsonMessage = json.readTree(message.toString());
+
+        JsonNode recipientNode = jsonMessage.get("recipient");
+        String recipient = recipientNode.textValue();
+
+        JsonNode messageNode = jsonMessage.get("message");
+        String messageText = messageNode.textValue();
+
         final List<String> attachments = new ArrayList<>();
 
         try {
-            manager.sendMessage(message.toString(), attachments, "+4917691403039");
+            manager.sendMessage(messageText, attachments, recipient);
         } catch (EncapsulatedExceptions encapsulatedExceptions) {
             encapsulatedExceptions.printStackTrace();
         }
-    }
-
-    @Override
-    public void deliveryComplete(final IMqttDeliveryToken token) {
-        System.out.println("mqtt delivered id: " + token.getMessageId());
     }
 }

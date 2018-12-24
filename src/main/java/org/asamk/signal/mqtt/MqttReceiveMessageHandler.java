@@ -1,8 +1,6 @@
 package org.asamk.signal.mqtt;
 
 import org.asamk.signal.manager.Manager;
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.whispersystems.signalservice.api.messages.SignalServiceContent;
@@ -17,7 +15,7 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
 
     private static int DEFAULT_QUALITY_OF_SERVICE = 2;
 
-    private final MqttAsyncClient mqttClient;
+    private final MqttTopicClient mqttClient;
     private final Manager manager;
 
 
@@ -25,7 +23,7 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
      * Creates a new instance that passes all incoming messages to the provided mqttClient.
      * @param mqttClient the broker to pass all the incoming messages to
      */
-    public MqttReceiveMessageHandler(Manager manager, MqttAsyncClient mqttClient)
+    public MqttReceiveMessageHandler(Manager manager, MqttTopicClient mqttClient)
     {
         this.manager = manager;
         this.mqttClient = mqttClient;
@@ -62,6 +60,5 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
         String topic = DEFAULT_TOPIC + stripIllegalTopicCharacters(manager.getUsername() + "/" + msg.getSubTopic());
 
         publishMessage(topic, msg.getJsonContent());
-
     }
 }

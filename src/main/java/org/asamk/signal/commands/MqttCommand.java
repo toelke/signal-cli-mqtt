@@ -6,9 +6,7 @@ import net.sourceforge.argparse4j.inf.Subparser;
 import org.asamk.signal.manager.Manager;
 import org.asamk.signal.mqtt.MqttReceiveMessageHandler;
 import org.asamk.signal.mqtt.MqttSendMessageHandler;
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.asamk.signal.mqtt.MqttTopicClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
 import java.io.IOException;
@@ -33,32 +31,26 @@ public class MqttCommand implements LocalCommand {
             System.err.println("User is not registered.");
             return 1;
         }
-        // TODO: start new thread to also send messages
+
         String brokerInput = ns.getString("broker");
-
         String broker  = brokerInput != null ? brokerInput : DEFAULT_MQTT_BROKER;
-        String clientId     = "signal-cli";
 
-        MqttAsyncClient mqttClient = null;
+        MqttTopicClient mqttTopicClient = null;
         try {
-            // connect to mqtt
-            mqttClient = new MqttAsyncClient(broker, clientId);
-            MqttConnectOptions connOpts = new MqttConnectOptions();
-            connOpts.setCleanSession(true);
-            System.out.println("Connecting to broker: " + broker);
-            mqttClient.connect(connOpts).waitForCompletion();
+            mqttTopicClient = new MqttTopicClient(broker);
+            mqttTopicClient.connect();
 
-            System.out.println("Connected: "+mqttClient.isConnected());
+            System.out.println("Connected: " + mqttTopicClient.isConnected());
 
-            //MqttSendMessageHandler sendHandler = new MqttSendMessageHandler(m, mqttClient);
-
+            MqttSendMessageHandler sendHandler = new MqttSendMessageHandler(m);
+            mqttTopicClient.addHandler(sendHandler);
             boolean ignoreAttachments = false;
             try {
                 m.receiveMessages(1,
                         TimeUnit.HOURS,
                         false,
                         ignoreAttachments,
-                        new MqttReceiveMessageHandler(m, mqttClient));
+                        new MqttReceiveMessageHandler(m, mqttTopicClient));
                 return 0;
             } catch (IOException e) {
                 System.err.println("Error while receiving messages: " + e.getMessage());
@@ -78,10 +70,10 @@ public class MqttCommand implements LocalCommand {
             ex.printStackTrace();
             return 1;
         } finally {
-           if(mqttClient != null) {
+           if(mqttTopicClient != null) {
                try {
-                   System.out.println("Closing Mqtt connection");
-                   mqttClient.disconnect();
+                   System.out.println("Closing mqtt connection");
+                   mqttTopicClient.disconnect();
                    return 0;
                }
                catch (MqttException me)
