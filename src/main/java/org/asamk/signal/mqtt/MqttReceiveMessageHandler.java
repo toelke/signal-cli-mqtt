@@ -58,12 +58,6 @@ public class MqttReceiveMessageHandler implements Manager.ReceiveMessageHandler 
 
     @Override
     public void handleMessage(final SignalServiceEnvelope envelope, final SignalServiceContent decryptedContent, final Throwable e) {
-        if(decryptedContent == null)
-        {
-            System.err.println("Decrypted content is null");
-            return;
-        }
-
         MqttJsonMessage msg = MqttJsonMessage.build(envelope, decryptedContent, e);
         String topic = DEFAULT_TOPIC + stripIllegalTopicCharacters(manager.getUsername() + "/" + msg.getSubTopic());
 
