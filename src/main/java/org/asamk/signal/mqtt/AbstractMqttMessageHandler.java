@@ -6,14 +6,27 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Abstract class to handle subscription of topics with multiple handlers.
+ */
 public abstract class AbstractMqttMessageHandler implements MqttMessageHandler {
 
-    private List<String> topicPatterns = new LinkedList<String>();
+    private final List<String> topicPatterns = new LinkedList<>();
 
+    /**
+     * Adds a topic the handler will be subscribed to. The topic can include wildcards.
+     *
+     * @param topicPattern the topic to subscribe to
+     */
     protected final void addTopic(String topicPattern) {
         topicPatterns.add(topicPattern);
     }
 
+    /**
+     * Returns a list of topics - wild cards can be included.
+     *
+     * @return list of topics to subscribe to
+     */
     public Collection<String> getTopics() {
         return topicPatterns;
     }
@@ -21,7 +34,6 @@ public abstract class AbstractMqttMessageHandler implements MqttMessageHandler {
     @Override
     public boolean matchesTopic(final String topic) {
         for (String topicPattern : topicPatterns) {
-            System.out.println("Pattern: " + topicPattern + " Topic: " + topic);
             if (MqttTopic.isMatched(topicPattern, topic)) {
                 return true;
             }

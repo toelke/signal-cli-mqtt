@@ -16,7 +16,7 @@ import static org.asamk.signal.util.ErrorUtils.handleAssertionError;
 
 public class MqttCommand implements LocalCommand {
 
-    private static String DEFAULT_MQTT_BROKER = "tcp://127.0.0.1:1883";
+    private static final String DEFAULT_MQTT_BROKER = "tcp://127.0.0.1:1883";
 
     @Override
     public void attachToSubparser(final Subparser subparser) {
@@ -44,6 +44,7 @@ public class MqttCommand implements LocalCommand {
 
             MqttSendMessageHandler sendHandler = new MqttSendMessageHandler(m);
             mqttTopicClient.addHandler(sendHandler);
+
             boolean ignoreAttachments = false;
             try {
                 m.receiveMessages(1,

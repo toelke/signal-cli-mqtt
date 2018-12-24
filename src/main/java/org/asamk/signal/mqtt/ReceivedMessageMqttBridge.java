@@ -11,9 +11,9 @@ import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
  */
 public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler {
 
-    public static String DEFAULT_TOPIC = "signal-cli/messages/incoming/";
+    public static final String DEFAULT_TOPIC = "signal-cli/messages/incoming/";
 
-    private static int DEFAULT_QUALITY_OF_SERVICE = 2;
+    private static final int DEFAULT_QUALITY_OF_SERVICE = 2;
 
     private final MqttTopicClient mqttClient;
     private final Manager manager;
@@ -28,6 +28,12 @@ public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler 
         this.mqttClient = mqttClient;
     }
 
+    /**
+     * Publishes message on mqtt under the given topic.
+     *
+     * @param topic   the topic to publish the message on
+     * @param content the content of the message
+     */
     private void publishMessage(String topic, String content) {
         MqttMessage message = new MqttMessage(content.getBytes());
         message.setQos(DEFAULT_QUALITY_OF_SERVICE);
@@ -38,7 +44,6 @@ public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler 
         } catch (MqttException ex) {
             throw new AssertionError(ex);
         }
-        System.out.println("Message published");
     }
 
     @Override

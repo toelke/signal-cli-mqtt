@@ -3,7 +3,7 @@ package org.asamk.signal.mqtt;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.asamk.signal.manager.Manager;
-import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptions;
 
 import java.util.ArrayList;
@@ -15,8 +15,7 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
     private final ObjectMapper json = new ObjectMapper();
     public static final String MQTT_TOPIC_SEND = "signal-cli/messages/send";
 
-    public MqttSendMessageHandler(Manager manager)
-    {
+    public MqttSendMessageHandler(Manager manager) {
         this.manager = manager;
         addTopic(MQTT_TOPIC_SEND
                 + "/" + MqttUtils.stripIllegalTopicCharacters(manager.getUsername()));

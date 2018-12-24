@@ -1,12 +1,12 @@
 package org.asamk.signal.mqtt;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.asamk.signal.JsonError;
 import org.asamk.signal.JsonMessageEnvelope;
@@ -25,10 +25,11 @@ public class MqttJsonMessage {
     public static final String SUBTOPIC_RECEIPT = "receipt";
     public static final String SUBTOPIC_OTHER = "other";
 
+    private static final String SUBTOPIC_ERROR = "error";
+
     private String subTopic;
     private String content;
 
-    private static String SUBTOPIC_ERROR = "error";
 
     private MqttJsonMessage() {
         // hide public constructor
@@ -38,6 +39,11 @@ public class MqttJsonMessage {
         this.subTopic = subTopic;
     }
 
+    /**
+     * Returns the subtopic the message fits the most to.
+     *
+     * @return the subtopic, e.g. data, typinginfo...
+     */
     public String getSubTopic() {
         return subTopic;
     }
@@ -48,6 +54,7 @@ public class MqttJsonMessage {
 
     /**
      * Returns the json encoded message.
+     *
      * @return json encoded message
      */
     public String getJsonContent() {
@@ -68,7 +75,9 @@ public class MqttJsonMessage {
 
         ObjectMapper jsonProcessor = new ObjectMapper();
         jsonProcessor.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY); // disable autodetect
-        jsonProcessor.enable(SerializationFeature.WRITE_NULL_MAP_VALUES);
+        jsonProcessor.setDefaultPropertyInclusion(
+                JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.NON_NULL));
+
         jsonProcessor.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         jsonProcessor.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
 
@@ -103,12 +112,12 @@ public class MqttJsonMessage {
      *
      * Possible subtopics: data, synq, call, typinginfo, receipt, other
      *
-     * @param envelope
-     * @param content
-     * @return
+     * @param envelope the envelope with meta information
+     * @param content  the content of the message
+     * @return the subtopic as a string
      */
     private static String findSubTopic(final SignalServiceEnvelope envelope, final SignalServiceContent content) {
-        if(content !=null) {
+        if (content != null) {
             if (content.getDataMessage().isPresent()) {
                 return SUBTOPIC_DATA;
             } else if (content.getSyncMessage().isPresent()) {
@@ -122,15 +131,10 @@ public class MqttJsonMessage {
             } else {
                 return SUBTOPIC_OTHER;
             }
-        }
-        else
-        {
-            if(envelope.isReceipt())
-            {
+        } else {
+            if (envelope.isReceipt()) {
                 return SUBTOPIC_RECEIPT;
-            }
-            else
-            {
+            } else {
                 return SUBTOPIC_OTHER;
             }
         }
