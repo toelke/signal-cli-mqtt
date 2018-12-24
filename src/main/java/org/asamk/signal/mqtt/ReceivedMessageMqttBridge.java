@@ -18,30 +18,17 @@ public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler 
     private final MqttTopicClient mqttClient;
     private final Manager manager;
 
-
     /**
      * Creates a new instance that passes all incoming messages to the provided mqttClient.
+     *
      * @param mqttClient the broker to pass all the incoming messages to
      */
-    public ReceivedMessageMqttBridge(Manager manager, MqttTopicClient mqttClient)
-    {
+    public ReceivedMessageMqttBridge(Manager manager, MqttTopicClient mqttClient) {
         this.manager = manager;
         this.mqttClient = mqttClient;
     }
 
-    /**
-     * Removes spaces and wildcard signs (*, +) from a given string.
-     * @param topic the topic to clean
-     * @return the cleaned topic
-     */
-    private String stripIllegalTopicCharacters(String topic)
-    {
-        return topic.replace("+", "")
-                .replace(" ", "");
-    }
-
-    private void publishMessage(String topic, String content)
-    {
+    private void publishMessage(String topic, String content) {
         MqttMessage message = new MqttMessage(content.getBytes());
         message.setQos(DEFAULT_QUALITY_OF_SERVICE);
         try {
@@ -57,7 +44,9 @@ public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler 
     @Override
     public void handleMessage(final SignalServiceEnvelope envelope, final SignalServiceContent decryptedContent, final Throwable e) {
         MqttJsonMessage msg = MqttJsonMessage.build(envelope, decryptedContent, e);
-        String topic = DEFAULT_TOPIC + stripIllegalTopicCharacters(manager.getUsername() + "/" + msg.getSubTopic());
+        String topic = DEFAULT_TOPIC
+                + MqttUtils.stripIllegalTopicCharacters(manager.getUsername()
+                + "/" + msg.getSubTopic());
 
         publishMessage(topic, msg.getJsonContent());
     }
