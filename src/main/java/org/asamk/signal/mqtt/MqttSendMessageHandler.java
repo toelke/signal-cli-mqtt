@@ -2,7 +2,9 @@ package org.asamk.signal.mqtt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.asamk.signal.NotAGroupMemberException;
 import org.asamk.signal.manager.Manager;
+import org.asamk.signal.util.Util;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptions;
 
@@ -16,7 +18,7 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
 
     private final Manager manager;
     private final ObjectMapper json = new ObjectMapper();
-    public static final String MQTT_TOPIC_SEND = "signal-cli/messages/send";
+    private static final String MQTT_TOPIC_SEND = "signal-cli/messages/send";
 
     public MqttSendMessageHandler(Manager manager) {
         this.manager = manager;
@@ -28,8 +30,26 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
     public void messageArrived(final String topic, final MqttMessage message) throws Exception {
         JsonNode jsonMessage = json.readTree(message.toString());
 
-        JsonNode recipientNode = jsonMessage.get("recipient");
-        String recipient = recipientNode.textValue();
+        List<String> recipients = new ArrayList<>();
+
+        if (jsonMessage.has("recipient")) {
+            JsonNode recipientNode = jsonMessage.get("recipient");
+            recipients.add(recipientNode.textValue());
+        }
+
+        if (jsonMessage.has("recipients")) {
+            JsonNode valuesNode = jsonMessage.get("recipients");
+            for (JsonNode node : valuesNode) {
+                recipients.add(node.asText());
+            }
+        }
+
+        String groupId = null;
+        if (jsonMessage.has("groupId")) {
+            JsonNode valuesNode = jsonMessage.get("groupId");
+            groupId = valuesNode.asText();
+            System.out.println("Found groupdId: " + groupId);
+        }
 
         JsonNode messageNode = jsonMessage.get("message");
         String messageText = messageNode.textValue();
@@ -37,7 +57,17 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
         final List<String> attachments = new ArrayList<>();
 
         try {
-            manager.sendMessage(messageText, attachments, recipient);
+            if (recipients.size() > 0) {
+                manager.sendMessage(messageText, attachments, recipients);
+            }
+            if (groupId != null) {
+                System.out.println("Trying to send to group: " + groupId);
+                try {
+                    manager.sendGroupMessage(messageText, attachments, Util.decodeGroupId(groupId));
+                } catch (NotAGroupMemberException ex) {
+                    System.err.println("User not in group " + groupId);
+                }
+            }
         } catch (EncapsulatedExceptions encapsulatedExceptions) {
             encapsulatedExceptions.printStackTrace();
         }

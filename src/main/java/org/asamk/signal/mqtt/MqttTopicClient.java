@@ -72,6 +72,8 @@ public class MqttTopicClient implements MqttCallback {
 
     @Override
     public void connectionLost(final Throwable cause) {
+        System.err.println("Connection dropped from mqtt: " + cause.getMessage());
+        cause.printStackTrace();
         // TODO: should we try to reconnect?
     }
 

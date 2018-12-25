@@ -42,7 +42,7 @@ public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler 
             System.out.println("Publishing message: " + content);
             mqttClient.publish(topic, message);
         } catch (MqttException ex) {
-            throw new AssertionError(ex);
+            System.err.println("Failed to publish message: "+ ex.getMessage());
         }
     }
 
