@@ -22,11 +22,7 @@ public abstract class AbstractMqttMessageHandler implements MqttMessageHandler {
         topicPatterns.add(topicPattern);
     }
 
-    /**
-     * Returns a list of topics - wild cards can be included.
-     *
-     * @return list of topics to subscribe to
-     */
+    @Override
     public Collection<String> getTopics() {
         return topicPatterns;
     }

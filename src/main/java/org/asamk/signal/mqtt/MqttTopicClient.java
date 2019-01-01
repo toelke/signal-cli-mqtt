@@ -74,7 +74,15 @@ public class MqttTopicClient implements MqttCallback {
     public void connectionLost(final Throwable cause) {
         System.err.println("Connection dropped from mqtt: " + cause.getMessage());
         cause.printStackTrace();
-        // TODO: should we try to reconnect?
+        try {
+            connect();
+            for (MqttMessageHandler handler : messageHandlers) {
+                subscribeHandler(handler);
+            }
+
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -92,21 +100,25 @@ public class MqttTopicClient implements MqttCallback {
 
     }
 
+    private void subscribeHandler(MqttMessageHandler handler) throws MqttException {
+        for (String topic : handler.getTopics()) {
+            System.out.println("Subscribing to " + topic);
+            mqttClient.subscribe(topic, QUALITY_OF_SERVICE).waitForCompletion();
+        }
+    }
+
     /**
      * Adds a new message handler for specific topics to the client.
      *
      * @param handler the handler to add
      * @throws MqttException if the handler's topics could not be subscribed
      */
-    public void addHandler(final MqttSendMessageHandler handler) throws MqttException {
+    public void addHandler(final MqttMessageHandler handler) throws MqttException {
         if (messageHandlers.contains(handler)) {
             // is added already
             return;
         }
         messageHandlers.add(handler);
-        for (String topic : handler.getTopics()) {
-            System.out.println("Subscribing to " + topic);
-            mqttClient.subscribe(topic, QUALITY_OF_SERVICE).waitForCompletion();
-        }
+        subscribeHandler(handler);
     }
 }
