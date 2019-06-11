@@ -70,6 +70,8 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
             }
         } catch (EncapsulatedExceptions encapsulatedExceptions) {
             encapsulatedExceptions.printStackTrace();
+        } catch (Exception ex) {
+            System.err.println("Failed to send message: " + ex.getMessage());
         }
     }
 }
