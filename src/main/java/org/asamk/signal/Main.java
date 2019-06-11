@@ -19,7 +19,6 @@ package org.asamk.signal;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.*;
-import org.apache.http.util.TextUtils;
 import org.asamk.Signal;
 import org.asamk.signal.commands.*;
 import org.asamk.signal.manager.BaseConfig;
@@ -34,6 +33,8 @@ import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
 import java.io.File;
 import java.security.Security;
 import java.util.Map;
+
+import static org.whispersystems.signalservice.internal.util.Util.isEmpty;
 
 public class Main {
 
@@ -82,7 +83,7 @@ public class Main {
                 }
             } else {
                 String dataPath = ns.getString("config");
-                if (TextUtils.isEmpty(dataPath)) {
+                if (isEmpty(dataPath)) {
                     dataPath = getDefaultDataPath();
                 }
 
@@ -210,7 +211,7 @@ public class Main {
                 System.err.println("You need to specify a username (phone number)");
                 System.exit(2);
             }
-            if (!PhoneNumberFormatter.isValidNumber(ns.getString("username"))) {
+            if (!PhoneNumberFormatter.isValidNumber(ns.getString("username"), null)) {
                 System.err.println("Invalid username (phone number), make sure you include the country code.");
                 System.exit(2);
             }
