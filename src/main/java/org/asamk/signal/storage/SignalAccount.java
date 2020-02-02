@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.asamk.signal.storage.contacts.JsonContactsStore;
 import org.asamk.signal.storage.groups.JsonGroupStore;
 import org.asamk.signal.storage.protocol.JsonSignalProtocolStore;
@@ -20,7 +21,7 @@ import org.whispersystems.libsignal.state.PreKeyRecord;
 import org.whispersystems.libsignal.state.SignedPreKeyRecord;
 import org.whispersystems.libsignal.util.Medium;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
-import org.whispersystems.signalservice.internal.util.Base64;
+import org.whispersystems.util.Base64;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,13 +130,19 @@ public class SignalAccount {
     }
 
     private void load() throws IOException {
-        JsonNode rootNode = jsonProcessor.readTree(Channels.newInputStream(fileChannel));
+        JsonNode rootNode;
+        synchronized (fileChannel) {
+            fileChannel.position(0);
+            rootNode = jsonProcessor.readTree(Channels.newInputStream(fileChannel));
+        }
 
         JsonNode node = rootNode.get("deviceId");
         if (node != null) {
             deviceId = node.asInt();
         }
-        if (rootNode.has("isMultiDevice")) isMultiDevice = Util.getNotNullNode(rootNode, "isMultiDevice").asBoolean();
+        if (rootNode.has("isMultiDevice")) {
+            isMultiDevice = Util.getNotNullNode(rootNode, "isMultiDevice").asBoolean();
+        }
         username = Util.getNotNullNode(rootNode, "username").asText();
         password = Util.getNotNullNode(rootNode, "password").asText();
         JsonNode pinNode = rootNode.get("registrationLockPin");
@@ -204,10 +211,12 @@ public class SignalAccount {
                 .putPOJO("threadStore", threadStore)
         ;
         try {
-            fileChannel.position(0);
-            jsonProcessor.writeValue(Channels.newOutputStream(fileChannel), rootNode);
-            fileChannel.truncate(fileChannel.position());
-            fileChannel.force(false);
+            synchronized (fileChannel) {
+                fileChannel.position(0);
+                jsonProcessor.writeValue(Channels.newOutputStream(fileChannel), rootNode);
+                fileChannel.truncate(fileChannel.position());
+                fileChannel.force(false);
+            }
         } catch (Exception e) {
             System.err.println(String.format("Error saving file: %s", e.getMessage()));
         }
@@ -260,6 +269,10 @@ public class SignalAccount {
 
     public String getUsername() {
         return username;
+    }
+
+    public SignalServiceAddress getSelfAddress() {
+        return new SignalServiceAddress(null, username);
     }
 
     public int getDeviceId() {

@@ -2,12 +2,12 @@ apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'eclipse'
 
-sourceCompatibility = JavaVersion.VERSION_1_7
-targetCompatibility = JavaVersion.VERSION_1_7
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 mainClassName = 'org.asamk.signal.Main'
 
-version = '0.6.2'
+version = '0.6.5'
 
 compileJava.options.encoding = 'UTF-8'
 
@@ -20,8 +20,8 @@ repositories {
 }
 
 dependencies {
-    compile 'com.github.turasa:signal-service-java:2.13.0_unofficial_2'
-    compile 'org.bouncycastle:bcprov-jdk15on:1.61'
+    compile 'com.github.turasa:signal-service-java:2.15.3_unofficial_1'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.64'
     compile 'net.sourceforge.argparse4j:argparse4j:0.8.1'
     compile 'org.freedesktop.dbus:dbus-java:2.7.0'
 	compile 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0'
@@ -59,7 +59,7 @@ task checkLibVersions {
                         def group = dependency.group
                         def path = group.replace('.', '/')
                         def name = dependency.name
-                        def url = "http://repo1.maven.org/maven2/$path/$name/maven-metadata.xml"
+                        def url = "https://repo1.maven.org/maven2/$path/$name/maven-metadata.xml"
                         try {
                             def metadata = new XmlSlurper().parseText(url.toURL().text)
                             def versions = metadata.versioning.versions.version.collect { it.text() }

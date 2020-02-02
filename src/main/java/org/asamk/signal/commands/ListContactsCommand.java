@@ -4,12 +4,10 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 import org.asamk.signal.manager.Manager;
-import org.whispersystems.libsignal.util.guava.Optional;
+import org.asamk.signal.storage.contacts.ContactInfo;
+import java.util.List;
 
-import java.io.IOException;
-
-public class RemovePinCommand implements LocalCommand {
-
+public class ListContactsCommand implements LocalCommand {
     @Override
     public void attachToSubparser(final Subparser subparser) {
     }
@@ -20,12 +18,10 @@ public class RemovePinCommand implements LocalCommand {
             System.err.println("User is not registered.");
             return 1;
         }
-        try {
-            m.setRegistrationLockPin(Optional.<String>absent());
-            return 0;
-        } catch (IOException e) {
-            System.err.println("Remove pin error: " + e.getMessage());
-            return 3;
+        List<ContactInfo> contacts = m.getContacts();
+        for (ContactInfo c : contacts) {
+            System.out.println(String.format("Number: %s Name: %s  Blocked: %b", c.number, c.name, c.blocked));
         }
+        return 0;
     }
 }

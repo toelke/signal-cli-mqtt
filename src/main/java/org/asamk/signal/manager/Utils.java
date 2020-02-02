@@ -15,45 +15,84 @@ import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 import org.whispersystems.signalservice.api.util.InvalidNumberException;
 import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
-import org.whispersystems.signalservice.internal.util.Base64;
+import org.whispersystems.signalservice.api.util.StreamDetails;
+import org.whispersystems.util.Base64;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.whispersystems.signalservice.internal.util.Util.isEmpty;
 
 class Utils {
 
     static List<SignalServiceAttachment> getSignalServiceAttachments(List<String> attachments) throws AttachmentInvalidException {
-        List<SignalServiceAttachment> SignalServiceAttachments = null;
+        List<SignalServiceAttachment> signalServiceAttachments = null;
         if (attachments != null) {
-            SignalServiceAttachments = new ArrayList<>(attachments.size());
+            signalServiceAttachments = new ArrayList<>(attachments.size());
             for (String attachment : attachments) {
                 try {
-                    SignalServiceAttachments.add(createAttachment(new File(attachment)));
+                    signalServiceAttachments.add(createAttachment(new File(attachment)));
                 } catch (IOException e) {
                     throw new AttachmentInvalidException(attachment, e);
                 }
             }
         }
-        return SignalServiceAttachments;
+        return signalServiceAttachments;
+    }
+
+    private static String getFileMimeType(File file) throws IOException {
+        String mime = Files.probeContentType(file.toPath());
+        if (mime == null) {
+            try (InputStream bufferedStream = new BufferedInputStream(new FileInputStream(file))) {
+                mime = URLConnection.guessContentTypeFromStream(bufferedStream);
+            }
+        }
+        if (mime == null) {
+            mime = "application/octet-stream";
+        }
+        return mime;
     }
 
     static SignalServiceAttachmentStream createAttachment(File attachmentFile) throws IOException {
         InputStream attachmentStream = new FileInputStream(attachmentFile);
         final long attachmentSize = attachmentFile.length();
-        String mime = Files.probeContentType(attachmentFile.toPath());
-        if (mime == null) {
-            mime = "application/octet-stream";
-        }
+        final String mime = getFileMimeType(attachmentFile);
         // TODO mabybe add a parameter to set the voiceNote, preview, width, height and caption option
         Optional<byte[]> preview = Optional.absent();
         Optional<String> caption = Optional.absent();
-        return new SignalServiceAttachmentStream(attachmentStream, mime, attachmentSize, Optional.of(attachmentFile.getName()), false, preview, 0, 0, caption, null);
+        Optional<String> blurHash = Optional.absent();
+        return new SignalServiceAttachmentStream(attachmentStream, mime, attachmentSize, Optional.of(attachmentFile.getName()), false, preview, 0, 0, caption, blurHash, null);
+    }
+
+    static StreamDetails createStreamDetailsFromFile(File file) throws IOException {
+        InputStream stream = new FileInputStream(file);
+        final long size = file.length();
+        String mime = Files.probeContentType(file.toPath());
+        if (mime == null) {
+            mime = "application/octet-stream";
+        }
+        return new StreamDetails(stream, mime, size);
     }
 
     static CertificateValidator getCertificateValidator() {
@@ -130,7 +169,7 @@ class Utils {
 
     private static SignalServiceAddress getPushAddress(String number, String localNumber) throws InvalidNumberException {
         String e164number = canonicalizeNumber(number, localNumber);
-        return new SignalServiceAddress(e164number);
+        return new SignalServiceAddress(null, e164number);
     }
 
     static SignalServiceEnvelope loadEnvelope(File file) throws IOException {
@@ -169,7 +208,7 @@ class Utils {
                     uuid = null;
                 }
             }
-            return new SignalServiceEnvelope(type, source, sourceDevice, timestamp, legacyMessage, content, serverTimestamp, uuid);
+            return new SignalServiceEnvelope(type, Optional.of(new SignalServiceAddress(null, source)), sourceDevice, timestamp, legacyMessage, content, serverTimestamp, uuid);
         }
     }
 
@@ -178,7 +217,7 @@ class Utils {
             try (DataOutputStream out = new DataOutputStream(f)) {
                 out.writeInt(2); // version
                 out.writeInt(envelope.getType());
-                out.writeUTF(envelope.getSource());
+                out.writeUTF(envelope.getSourceE164().get());
                 out.writeInt(envelope.getSourceDevice());
                 out.writeLong(envelope.getTimestamp());
                 if (envelope.hasContent()) {
@@ -218,7 +257,9 @@ class Utils {
     }
 
     static String computeSafetyNumber(String ownUsername, IdentityKey ownIdentityKey, String theirUsername, IdentityKey theirIdentityKey) {
-        Fingerprint fingerprint = new NumericFingerprintGenerator(5200).createFor(ownUsername, ownIdentityKey, theirUsername, theirIdentityKey);
+        // Version 1: E164 user
+        // Version 2: UUID user
+        Fingerprint fingerprint = new NumericFingerprintGenerator(5200).createFor(1, ownUsername.getBytes(), ownIdentityKey, theirUsername.getBytes(), theirIdentityKey);
         return fingerprint.getDisplayableFingerprint().getDisplayText();
     }
 

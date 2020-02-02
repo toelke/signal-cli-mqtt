@@ -5,11 +5,32 @@ import org.asamk.signal.storage.contacts.ContactInfo;
 import org.asamk.signal.storage.groups.GroupInfo;
 import org.asamk.signal.util.DateUtils;
 import org.asamk.signal.util.Util;
-import org.whispersystems.signalservice.api.messages.*;
-import org.whispersystems.signalservice.api.messages.calls.*;
-import org.whispersystems.signalservice.api.messages.multidevice.*;
+import org.whispersystems.signalservice.api.messages.SignalServiceAttachment;
+import org.whispersystems.signalservice.api.messages.SignalServiceAttachmentPointer;
+import org.whispersystems.signalservice.api.messages.SignalServiceContent;
+import org.whispersystems.signalservice.api.messages.SignalServiceDataMessage;
+import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
+import org.whispersystems.signalservice.api.messages.SignalServiceGroup;
+import org.whispersystems.signalservice.api.messages.SignalServiceReceiptMessage;
+import org.whispersystems.signalservice.api.messages.SignalServiceTypingMessage;
+import org.whispersystems.signalservice.api.messages.calls.AnswerMessage;
+import org.whispersystems.signalservice.api.messages.calls.BusyMessage;
+import org.whispersystems.signalservice.api.messages.calls.HangupMessage;
+import org.whispersystems.signalservice.api.messages.calls.IceUpdateMessage;
+import org.whispersystems.signalservice.api.messages.calls.OfferMessage;
+import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.BlockedListMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.ConfigurationMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.ContactsMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.ReadMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.SentTranscriptMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.StickerPackOperationMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.VerifiedMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.ViewOnceOpenMessage;
+import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
-import org.whispersystems.signalservice.internal.util.Base64;
+import org.whispersystems.util.Base64;
 
 import java.io.File;
 import java.util.List;
@@ -24,11 +45,15 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
 
     @Override
     public void handleMessage(SignalServiceEnvelope envelope, SignalServiceContent content, Throwable exception) {
-        SignalServiceAddress source = envelope.getSourceAddress();
-        ContactInfo sourceContact = m.getContact(source.getNumber());
-        System.out.println(String.format("Envelope from: %s (device: %d)", (sourceContact == null ? "" : "“" + sourceContact.name + "” ") + source.getNumber(), envelope.getSourceDevice()));
-        if (source.getRelay().isPresent()) {
-            System.out.println("Relayed by: " + source.getRelay().get());
+        if (!envelope.isUnidentifiedSender() && envelope.hasSource()) {
+            SignalServiceAddress source = envelope.getSourceAddress();
+            ContactInfo sourceContact = m.getContact(source.getNumber().get());
+            System.out.println(String.format("Envelope from: %s (device: %d)", (sourceContact == null ? "" : "“" + sourceContact.name + "” ") + source.getNumber().get(), envelope.getSourceDevice()));
+            if (source.getRelay().isPresent()) {
+                System.out.println("Relayed by: " + source.getRelay().get());
+            }
+        } else {
+            System.out.println("Envelope from: unknown source");
         }
         System.out.println("Timestamp: " + DateUtils.formatTimestamp(envelope.getTimestamp()));
         if (envelope.isUnidentifiedSender()) {
@@ -37,7 +62,7 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
 
         if (envelope.isReceipt()) {
             System.out.println("Got receipt.");
-        } else if (envelope.isSignalMessage() | envelope.isPreKeySignalMessage()) {
+        } else if (envelope.isSignalMessage() || envelope.isPreKeySignalMessage() || envelope.isUnidentifiedSender()) {
             if (exception != null) {
                 if (exception instanceof org.whispersystems.libsignal.UntrustedIdentityException) {
                     org.whispersystems.libsignal.UntrustedIdentityException e = (org.whispersystems.libsignal.UntrustedIdentityException) exception;
@@ -51,6 +76,7 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
             if (content == null) {
                 System.out.println("Failed to decrypt message.");
             } else {
+                System.out.println(String.format("Sender: %s (device: %d)", content.getSender().getNumber().get(), content.getSenderDevice()));
                 if (content.getDataMessage().isPresent()) {
                     SignalServiceDataMessage message = content.getDataMessage().get();
                     handleSignalServiceDataMessage(message);
@@ -75,8 +101,8 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
                     if (syncMessage.getRead().isPresent()) {
                         System.out.println("Received sync read messages list");
                         for (ReadMessage rm : syncMessage.getRead().get()) {
-                            ContactInfo fromContact = m.getContact(rm.getSender());
-                            System.out.println("From: " + (fromContact == null ? "" : "“" + fromContact.name + "” ") + rm.getSender() + " Message timestamp: " + DateUtils.formatTimestamp(rm.getTimestamp()));
+                            ContactInfo fromContact = m.getContact(rm.getSender().getNumber().get());
+                            System.out.println("From: " + (fromContact == null ? "" : "“" + fromContact.name + "” ") + rm.getSender().getNumber() + " Message timestamp: " + DateUtils.formatTimestamp(rm.getTimestamp()));
                         }
                     }
                     if (syncMessage.getRequest().isPresent()) {
@@ -93,7 +119,7 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
                         final SentTranscriptMessage sentTranscriptMessage = syncMessage.getSent().get();
                         String to;
                         if (sentTranscriptMessage.getDestination().isPresent()) {
-                            String dest = sentTranscriptMessage.getDestination().get();
+                            String dest = sentTranscriptMessage.getDestination().get().getNumber().get();
                             ContactInfo destContact = m.getContact(dest);
                             to = (destContact == null ? "" : "“" + destContact.name + "” ") + dest;
                         } else {
@@ -110,15 +136,15 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
                         System.out.println("Received sync message with block list");
                         System.out.println("Blocked numbers:");
                         final BlockedListMessage blockedList = syncMessage.getBlockedList().get();
-                        for (String number : blockedList.getNumbers()) {
-                            System.out.println(" - " + number);
+                        for (SignalServiceAddress address : blockedList.getAddresses()) {
+                            System.out.println(" - " + address.getNumber());
                         }
                     }
                     if (syncMessage.getVerified().isPresent()) {
                         System.out.println("Received sync message with verified identities:");
                         final VerifiedMessage verifiedMessage = syncMessage.getVerified().get();
                         System.out.println(" - " + verifiedMessage.getDestination() + ": " + verifiedMessage.getVerified());
-                        String safetyNumber = Util.formatSafetyNumber(m.computeSafetyNumber(verifiedMessage.getDestination(), verifiedMessage.getIdentityKey()));
+                        String safetyNumber = Util.formatSafetyNumber(m.computeSafetyNumber(verifiedMessage.getDestination().getNumber().get(), verifiedMessage.getIdentityKey()));
                         System.out.println("   " + safetyNumber);
                     }
                     if (syncMessage.getConfiguration().isPresent()) {
@@ -126,6 +152,29 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
                         final ConfigurationMessage configurationMessage = syncMessage.getConfiguration().get();
                         if (configurationMessage.getReadReceipts().isPresent()) {
                             System.out.println(" - Read receipts: " + (configurationMessage.getReadReceipts().get() ? "enabled" : "disabled"));
+                        }
+                    }
+                    if (syncMessage.getFetchType().isPresent()) {
+                        final SignalServiceSyncMessage.FetchType fetchType = syncMessage.getFetchType().get();
+                        System.out.println("Received sync message with fetch type: " + fetchType.toString());
+                    }
+                    if (syncMessage.getViewOnceOpen().isPresent()) {
+                        final ViewOnceOpenMessage viewOnceOpenMessage = syncMessage.getViewOnceOpen().get();
+                        System.out.println("Received sync message with view once open message:");
+                        System.out.println(" - Sender:" + viewOnceOpenMessage.getSender().getNumber());
+                        System.out.println(" - Timestamp:" + viewOnceOpenMessage.getTimestamp());
+                    }
+                    if (syncMessage.getStickerPackOperations().isPresent()) {
+                        final List<StickerPackOperationMessage> stickerPackOperationMessages = syncMessage.getStickerPackOperations().get();
+                        System.out.println("Received sync message with sticker pack operations:");
+                        for (StickerPackOperationMessage m : stickerPackOperationMessages) {
+                            System.out.println(" - " + m.getType().toString());
+                            if (m.getPackId().isPresent()) {
+                                System.out.println("   packId: " + Base64.encodeBytes(m.getPackId().get()));
+                            }
+                            if (m.getPackKey().isPresent()) {
+                                System.out.println("   packKey: " + Base64.encodeBytes(m.getPackKey().get()));
+                            }
                         }
                     }
                 }
@@ -213,14 +262,41 @@ public class ReceiveMessageHandler implements Manager.ReceiveMessageHandler {
             }
             System.out.println("  Type: " + groupInfo.getType());
             if (groupInfo.getMembers().isPresent()) {
-                for (String member : groupInfo.getMembers().get()) {
-                    System.out.println("  Member: " + member);
+                for (SignalServiceAddress member : groupInfo.getMembers().get()) {
+                    System.out.println("  Member: " + member.getNumber().get());
                 }
             }
             if (groupInfo.getAvatar().isPresent()) {
                 System.out.println("  Avatar:");
                 printAttachment(groupInfo.getAvatar().get());
             }
+        }
+        if (message.getPreviews().isPresent()) {
+            final List<SignalServiceDataMessage.Preview> previews = message.getPreviews().get();
+            System.out.println("Previes:");
+            for (SignalServiceDataMessage.Preview preview : previews) {
+                System.out.println(" - Title: " + preview.getTitle());
+                System.out.println(" - Url: " + preview.getUrl());
+                if (preview.getImage().isPresent()) {
+                    printAttachment(preview.getImage().get());
+                }
+            }
+        }
+        if (message.getSharedContacts().isPresent()) {
+            final List<SharedContact> sharedContacts = message.getSharedContacts().get();
+            System.out.println("Contacts:");
+            for (SharedContact contact : sharedContacts) {
+                System.out.println(" - Name: " + contact.getName());
+                // TODO show or store rest of the contact info
+            }
+        }
+        if (message.getSticker().isPresent()) {
+            final SignalServiceDataMessage.Sticker sticker = message.getSticker().get();
+            System.out.println("Sticker:");
+            System.out.println(" - Pack id: " + Base64.encodeBytes(sticker.getPackId()));
+            System.out.println(" - Pack key: " + Base64.encodeBytes(sticker.getPackKey()));
+            System.out.println(" - Sticker id: " + sticker.getStickerId());
+            // TODO also download sticker image ??
         }
         if (message.isEndSession()) {
             System.out.println("Is end session");
