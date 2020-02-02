@@ -1,6 +1,9 @@
 package org.asamk.signal.storage.contacts;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 
 public class ContactInfo {
 
@@ -15,4 +18,12 @@ public class ContactInfo {
 
     @JsonProperty
     public String profileKey;
+
+    @JsonProperty(defaultValue = "false")
+    public boolean blocked;
+
+    @JsonIgnore
+    public SignalServiceAddress getAddress() {
+        return new SignalServiceAddress(null, number);
+    }
 }

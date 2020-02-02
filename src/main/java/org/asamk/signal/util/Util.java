@@ -1,8 +1,9 @@
 package org.asamk.signal.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import org.asamk.signal.GroupIdFormatException;
-import org.whispersystems.signalservice.internal.util.Base64;
+import org.whispersystems.util.Base64;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
