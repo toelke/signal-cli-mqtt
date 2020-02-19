@@ -13,7 +13,7 @@ public class MqttTopicClient implements MqttCallback {
     private final MqttAsyncClient mqttClient;
     private final String brokerUrl;
     private List<MqttMessageHandler> messageHandlers = new LinkedList<>();
-    private static int QUALITY_OF_SERVICE = 2;
+    private static int QUALITY_OF_SERVICE = 2; // highest quality of service, will be delivered exactly once
 
     /**
      * Instantiates a new client to receive and publish messages on a Mqtt Broker.

@@ -22,7 +22,7 @@ public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
 
     public MqttSendMessageHandler(Manager manager) {
         this.manager = manager;
-        addTopic(MQTT_TOPIC_SEND
+        addTopicForSubscription(MQTT_TOPIC_SEND
                 + "/" + MqttUtils.stripIllegalTopicCharacters(manager.getUsername()));
     }
 

@@ -18,7 +18,7 @@ public abstract class AbstractMqttMessageHandler implements MqttMessageHandler {
      *
      * @param topicPattern the topic to subscribe to
      */
-    protected final void addTopic(String topicPattern) {
+    protected final void addTopicForSubscription(String topicPattern) {
         topicPatterns.add(topicPattern);
     }
 
