@@ -14,13 +14,13 @@ import java.util.List;
 /**
  * Handler to react on send requests from the broker on {@link #MQTT_TOPIC_SEND}.
  */
-public class MqttSendMessageHandler extends AbstractMqttMessageHandler {
+public class MqttMsgToSignalBridge extends AbstractMqttMessageHandler {
 
     private final Manager manager;
     private final ObjectMapper json = new ObjectMapper();
     private static final String MQTT_TOPIC_SEND = "signal-cli/messages/send";
 
-    public MqttSendMessageHandler(Manager manager) {
+    public MqttMsgToSignalBridge(Manager manager) {
         this.manager = manager;
         addTopicForSubscription(MQTT_TOPIC_SEND
                 + "/" + MqttUtils.stripIllegalTopicCharacters(manager.getUsername()));

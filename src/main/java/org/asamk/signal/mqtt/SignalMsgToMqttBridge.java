@@ -9,7 +9,7 @@ import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
 /**
  * Handler class that passes incoming Signal messages to an mqtt broker.
  */
-public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler {
+public class SignalMsgToMqttBridge implements Manager.ReceiveMessageHandler {
 
     public static final String DEFAULT_TOPIC = "signal-cli/messages/incoming/";
 
@@ -23,7 +23,7 @@ public class ReceivedMessageMqttBridge implements Manager.ReceiveMessageHandler 
      *
      * @param mqttClient the broker to pass all the incoming messages to
      */
-    public ReceivedMessageMqttBridge(Manager manager, MqttTopicClient mqttClient) {
+    public SignalMsgToMqttBridge(Manager manager, MqttTopicClient mqttClient) {
         this.manager = manager;
         this.mqttClient = mqttClient;
     }
