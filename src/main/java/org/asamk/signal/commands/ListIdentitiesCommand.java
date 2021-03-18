@@ -3,53 +3,61 @@ package org.asamk.signal.commands;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
+import org.asamk.signal.PlainTextWriter;
+import org.asamk.signal.PlainTextWriterImpl;
+import org.asamk.signal.commands.exceptions.CommandException;
+import org.asamk.signal.commands.exceptions.UserErrorException;
 import org.asamk.signal.manager.Manager;
-import org.asamk.signal.storage.protocol.JsonIdentityKeyStore;
+import org.asamk.signal.manager.storage.protocol.IdentityInfo;
 import org.asamk.signal.util.Hex;
 import org.asamk.signal.util.Util;
-import org.whispersystems.libsignal.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.whispersystems.signalservice.api.util.InvalidNumberException;
 
 import java.util.List;
-import java.util.Map;
 
 public class ListIdentitiesCommand implements LocalCommand {
 
-    private static void printIdentityFingerprint(Manager m, String theirUsername, JsonIdentityKeyStore.Identity theirId) {
-        String digits = Util.formatSafetyNumber(m.computeSafetyNumber(theirUsername, theirId.getIdentityKey()));
-        System.out.println(String.format("%s: %s Added: %s Fingerprint: %s Safety Number: %s", theirUsername,
-                theirId.getTrustLevel(), theirId.getDateAdded(), Hex.toStringCondensed(theirId.getFingerprint()), digits));
+    private final static Logger logger = LoggerFactory.getLogger(ListIdentitiesCommand.class);
+
+    private static void printIdentityFingerprint(PlainTextWriter writer, Manager m, IdentityInfo theirId) {
+        var digits = Util.formatSafetyNumber(m.computeSafetyNumber(theirId.getAddress(), theirId.getIdentityKey()));
+        writer.println("{}: {} Added: {} Fingerprint: {} Safety Number: {}",
+                theirId.getAddress().getNumber().orNull(),
+                theirId.getTrustLevel(),
+                theirId.getDateAdded(),
+                Hex.toString(theirId.getFingerprint()),
+                digits);
     }
 
     @Override
     public void attachToSubparser(final Subparser subparser) {
-        subparser.addArgument("-n", "--number")
-                .help("Only show identity keys for the given phone number.");
+        subparser.addArgument("-n", "--number").help("Only show identity keys for the given phone number.");
     }
 
     @Override
-    public int handleCommand(final Namespace ns, final Manager m) {
-        if (!m.isRegistered()) {
-            System.err.println("User is not registered.");
-            return 1;
-        }
-        if (ns.get("number") == null) {
-            for (Map.Entry<String, List<JsonIdentityKeyStore.Identity>> keys : m.getIdentities().entrySet()) {
-                for (JsonIdentityKeyStore.Identity id : keys.getValue()) {
-                    printIdentityFingerprint(m, keys.getKey(), id);
-                }
+    public void handleCommand(final Namespace ns, final Manager m) throws CommandException {
+        final var writer = new PlainTextWriterImpl(System.out);
+
+        var number = ns.getString("number");
+
+        if (number == null) {
+            for (var identity : m.getIdentities()) {
+                printIdentityFingerprint(writer, m, identity);
             }
-        } else {
-            String number = ns.getString("number");
-            try {
-                Pair<String, List<JsonIdentityKeyStore.Identity>> key = m.getIdentities(number);
-                for (JsonIdentityKeyStore.Identity id : key.second()) {
-                    printIdentityFingerprint(m, key.first(), id);
-                }
-            } catch (InvalidNumberException e) {
-                System.out.println("Invalid number: " + e.getMessage());
-            }
+            return;
         }
-        return 0;
+
+        List<IdentityInfo> identities;
+        try {
+            identities = m.getIdentities(number);
+        } catch (InvalidNumberException e) {
+            throw new UserErrorException("Invalid number: " + e.getMessage());
+        }
+
+        for (var id : identities) {
+            printIdentityFingerprint(writer, m, id);
+        }
     }
 }

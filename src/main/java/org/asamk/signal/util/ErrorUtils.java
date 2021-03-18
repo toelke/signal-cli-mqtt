@@ -1,62 +1,68 @@
 package org.asamk.signal.util;
 
-import org.asamk.signal.GroupIdFormatException;
-import org.asamk.signal.GroupNotFoundException;
-import org.asamk.signal.NotAGroupMemberException;
-import org.freedesktop.dbus.exceptions.DBusExecutionException;
-import org.whispersystems.signalservice.api.crypto.UntrustedIdentityException;
-import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptions;
-import org.whispersystems.signalservice.api.push.exceptions.NetworkFailureException;
-import org.whispersystems.signalservice.api.push.exceptions.UnregisteredUserException;
+import org.asamk.signal.PlainTextWriter;
+import org.asamk.signal.commands.exceptions.CommandException;
+import org.asamk.signal.commands.exceptions.IOErrorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.whispersystems.signalservice.api.messages.SendMessageResult;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ErrorUtils {
+
+    private final static Logger logger = LoggerFactory.getLogger(ErrorUtils.class);
 
     private ErrorUtils() {
     }
 
     public static void handleAssertionError(AssertionError e) {
-        System.err.println("Failed to send/receive message (Assertion): " + e.getMessage());
-        e.printStackTrace();
-        System.err.println("If you use an Oracle JRE please check if you have unlimited strength crypto enabled, see README");
+        logger.warn("If you use an Oracle JRE please check if you have unlimited strength crypto enabled, see README");
     }
 
-    public static void handleEncapsulatedExceptions(EncapsulatedExceptions e) {
-        System.err.println("Failed to send (some) messages:");
-        for (NetworkFailureException n : e.getNetworkExceptions()) {
-            System.err.println("Network failure for \"" + n.getE164number() + "\": " + n.getMessage());
+    public static void handleTimestampAndSendMessageResults(
+            PlainTextWriter writer, long timestamp, List<SendMessageResult> results
+    ) throws CommandException {
+        if (timestamp != 0) {
+            writer.println("{}", timestamp);
         }
-        for (UnregisteredUserException n : e.getUnregisteredUserExceptions()) {
-            System.err.println("Unregistered user \"" + n.getE164Number() + "\": " + n.getMessage());
+        var errors = getErrorMessagesFromSendMessageResults(results);
+        handleSendMessageResultErrors(errors);
+    }
+
+    public static List<String> getErrorMessagesFromSendMessageResults(List<SendMessageResult> results) {
+        var errors = new ArrayList<String>();
+        for (var result : results) {
+            var error = getErrorMessageFromSendMessageResult(result);
+            if (error != null) {
+                errors.add(error);
+            }
         }
-        for (UntrustedIdentityException n : e.getUntrustedIdentityExceptions()) {
-            System.err.println("Untrusted Identity for \"" + n.getIdentifier() + "\": " + n.getMessage());
+
+        return errors;
+    }
+
+    public static String getErrorMessageFromSendMessageResult(SendMessageResult result) {
+        if (result.isNetworkFailure()) {
+            return String.format("Network failure for \"%s\"", result.getAddress().getLegacyIdentifier());
+        } else if (result.isUnregisteredFailure()) {
+            return String.format("Unregistered user \"%s\"", result.getAddress().getLegacyIdentifier());
+        } else if (result.getIdentityFailure() != null) {
+            return String.format("Untrusted Identity for \"%s\"", result.getAddress().getLegacyIdentifier());
         }
+        return null;
     }
 
-    public static void handleIOException(IOException e) {
-        System.err.println("Failed to send message: " + e.getMessage());
-    }
-
-    public static void handleGroupNotFoundException(GroupNotFoundException e) {
-        System.err.println("Failed to send to group: " + e.getMessage());
-        System.err.println("Aborting sending.");
-    }
-
-    public static void handleNotAGroupMemberException(NotAGroupMemberException e) {
-        System.err.println("Failed to send to group: " + e.getMessage());
-        System.err.println("Update the group on another device to readd the user to this group.");
-        System.err.println("Aborting sending.");
-    }
-
-    public static void handleDBusExecutionException(DBusExecutionException e) {
-        System.err.println("Cannot connect to dbus: " + e.getMessage());
-        System.err.println("Aborting.");
-    }
-
-    public static void handleGroupIdFormatException(GroupIdFormatException e) {
-        System.err.println(e.getMessage());
-        System.err.println("Aborting sending.");
+    private static void handleSendMessageResultErrors(List<String> errors) throws CommandException {
+        if (errors.size() == 0) {
+            return;
+        }
+        var message = new StringBuilder();
+        message.append("Failed to send (some) messages:\n");
+        for (var error : errors) {
+            message.append(error).append("\n");
+        }
+        throw new IOErrorException(message.toString());
     }
 }
