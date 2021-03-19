@@ -7,6 +7,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptions;
 import org.asamk.signal.manager.Manager;
 import org.asamk.signal.manager.groups.NotAGroupMemberException;
+import org.whispersystems.signalservice.api.util.InvalidNumberException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,7 +59,12 @@ public class MqttMsgToSignalBridge extends AbstractMqttMessageHandler {
 
         try {
             if (recipients.size() > 0) {
-                manager.sendMessage(messageText, attachments, recipients);
+                try {
+                    manager.sendMessage(messageText, attachments, recipients);
+                }
+                catch(InvalidNumberException ex){
+                    // TODO: no idea what to do in this case
+                }
             }
             if (groupId != null) {
                 System.out.println("Trying to send to group: " + groupId);

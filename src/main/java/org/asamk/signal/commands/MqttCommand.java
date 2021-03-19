@@ -30,11 +30,11 @@ public class MqttCommand implements LocalCommand {
     }
 
     @Override
-    public int handleCommand(final Namespace ns, final Manager m) {
-        if (!m.isRegistered()) {
-            System.err.println("User is not registered.");
-            return 1;
-        }
+    public void handleCommand(final Namespace ns, final Manager m) {
+        // TODO: fix again
+        //if (!m.isRegistered()) {
+        //    System.err.println("User is not registered.");
+        //}
 
         String brokerInput = ns.getString("broker");
         String broker = brokerInput != null ? brokerInput : DEFAULT_MQTT_BROKER;
@@ -56,31 +56,27 @@ public class MqttCommand implements LocalCommand {
                         false,
                         ignoreAttachments,
                         new SignalMsgToMqttBridge(m, mqttTopicClient));
-                return 0;
             } catch (IOException e) {
                 System.err.println("Error while receiving messages: " + e.getMessage());
-                return 3;
             } catch (AssertionError e) {
                 handleAssertionError(e);
-                return 1;
             }
         } catch (MqttException me) {
             System.err.println("Error while handling mqtt: " + me.getMessage());
             me.printStackTrace();
-            return 1;
         } catch (Exception ex) {
             System.err.println("Error: " + ex);
             ex.printStackTrace();
-            return 1;
+
         } finally {
             if (mqttTopicClient != null) {
                 try {
                     System.out.println("Closing mqtt connection");
                     mqttTopicClient.disconnect();
-                    return 0;
+
                 } catch (MqttException me) {
                     System.err.println("Error while closing mqtt connection: " + me.getMessage());
-                    return 1;
+
                 }
             }
         }
