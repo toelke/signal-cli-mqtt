@@ -4,7 +4,7 @@ import org.whispersystems.signalservice.api.messages.SignalServiceContent;
 import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 
-public class JsonMessageEnvelope {
+class JsonMessageEnvelope {
 
     String source;
     int sourceDevice;

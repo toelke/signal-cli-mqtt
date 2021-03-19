@@ -1,10 +1,10 @@
 package org.asamk.signal;
 
-public class JsonError {
+class JsonError {
 
     String message;
 
-    public JsonError(Throwable exception) {
+    JsonError(Throwable exception) {
         this.message = exception.getMessage();
     }
 }
