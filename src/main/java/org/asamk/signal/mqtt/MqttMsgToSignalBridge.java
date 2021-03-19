@@ -2,12 +2,11 @@ package org.asamk.signal.mqtt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.asamk.signal.NotAGroupMemberException;
-import org.asamk.signal.manager.Manager;
 import org.asamk.signal.util.Util;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.whispersystems.signalservice.api.push.exceptions.EncapsulatedExceptions;
-
+import org.asamk.signal.manager.Manager;
+import org.asamk.signal.manager.groups.NotAGroupMemberException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,8 +67,8 @@ public class MqttMsgToSignalBridge extends AbstractMqttMessageHandler {
                     System.err.println("User not in group " + groupId);
                 }
             }
-        } catch (EncapsulatedExceptions encapsulatedExceptions) {
-            encapsulatedExceptions.printStackTrace();
+        //} catch (EncapsulatedExceptions encapsulatedExceptions) {
+        //    encapsulatedExceptions.printStackTrace();
         } catch (Exception ex) {
             System.err.println("Failed to send message: " + ex.getMessage());
         }

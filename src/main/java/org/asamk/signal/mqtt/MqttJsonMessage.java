@@ -8,8 +8,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.asamk.signal.JsonError;
-import org.asamk.signal.JsonMessageEnvelope;
+import org.asamk.signal.json.JsonError;
 import org.whispersystems.signalservice.api.messages.SignalServiceContent;
 import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
 
@@ -88,7 +87,8 @@ public class MqttJsonMessage {
         }
 
         if (envelope != null) {
-            result.putPOJO("envelope", new JsonMessageEnvelope(envelope, content));
+            // TODO: fix this
+            //result.putPOJO("envelope", new JsonMessageEnvelope(envelope, content));
             message.setSubTopic(findSubTopic(envelope, content));
         }
         try {

@@ -26,6 +26,7 @@ dependencies {
     implementation("net.sourceforge.argparse4j:argparse4j:0.8.1")
     implementation("com.github.hypfvieh:dbus-java:3.2.4")
     implementation("org.slf4j:slf4j-simple:1.7.30")
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0")
     implementation(project(":lib"))
 }
 
