@@ -100,3 +100,5 @@ task<Exec>("killsignal") {
 	commandLine("pkill", "-ef", "signal-cli")
 	dependsOn(":build")
 }
+
+task("copyRuntimeLibs", Copy::class) { from(configurations.default).into("$buildDir/libs") }

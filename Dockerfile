@@ -6,8 +6,6 @@ WORKDIR /tmp/src
 
 RUN mkdir -p ~/.gradle && echo -n "org.gradle.daemon=false\norg.gradle.vfs.watch=false" >> ~/.gradle/gradle.properties
 
-RUN echo -n 'task("copyRuntimeLibs", Copy::class) { from(configurations.default).into("$buildDir/libs") }' >> build.gradle.kts
-
 RUN gradle build copyRuntimeLibs
 
 FROM debian:latest
