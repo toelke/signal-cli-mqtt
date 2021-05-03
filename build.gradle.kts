@@ -95,3 +95,8 @@ val assembleNativeImage by tasks.registering {
         }
     }
 }
+
+task<Exec>("killsignal") {
+	commandLine("pkill", "-ef", "signal-cli")
+	dependsOn(":build")
+}
